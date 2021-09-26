@@ -1,0 +1,83 @@
+#!/usr/bin/python2.7
+
+import csv
+from nltk.corpus import stopwords
+import re
+import string
+from collections import defaultdict
+import nltk
+import io
+
+
+nltk.download('stopwords')
+stop = stopwords.words('english')
+
+inter1 = []
+sentences_all = []
+sentences_clean = []
+sentences_unpun = []
+
+dictionary1 = {}
+d2_dict = defaultdict(dict)
+
+#Use this when getting unicode error
+with io.open('edmunds_modified.csv', 'r', encoding='utf-8', errors='ignore') as infile, open('final.csv', 'w') as outfile:
+     inputs = csv.reader(infile)
+     output = csv.writer(outfile)
+
+     for index, row in enumerate(inputs):
+         # Create file with no header
+         if index == 0:
+             continue
+         output.writerow(row)
+
+with open('final.csv') as f:
+    rows = csv.reader(f,  delimiter=str(','), quotechar=str('"'))
+    for row in rows:
+        inter1.append(row[2])
+
+for row in inter1:
+    sentences = re.split(r' *[\.\?!][\'"\)\]]* *', row)
+
+    for s in sentences:
+        in1 = ''.join(s)
+        out = re.sub('[%s]' % re.escape(string.punctuation), '', in1.lower())
+        sentences_all.append(out)
+
+for sentence in sentences_all:
+    s = []
+    for i in sentence.split():
+        if i not in stop:
+            s.append(i)
+    sentences_clean.append(s)
+
+for sentence in sentences_clean:
+    #print sentence
+    for word in sentence:
+        dictionary1[word] = 0
+
+for sentence in sentences_clean:
+    for word in sentence:
+        dictionary1[word] = dictionary1[word] + 1
+
+for sentence in sentences_clean:
+    for word in sentence:
+        for word2 in sentence:
+            if(word != word2):
+                d2_dict[word][word2] = 0
+
+for sentence in sentences_clean:
+    for word in sentence:
+        for word2 in sentence:
+            if(word != word2):
+                d2_dict[word][word2] = d2_dict[word][word2] + 1
+
+writer = csv.writer(open('word_freq.csv', 'wb'))
+for key, value in dictionary1.items():
+    writer.writerow([key, value])
+
+writer = csv.writer(open('word_pair_freq.csv', 'wb'))
+for key1, value1 in d2_dict.items():
+    for key2, value2 in d2_dict[key1].items():
+        writer.writerow([key1, key2, value2])
+print("written to word_freq.csv and word_pair_freq.csv")
